@@ -1,4 +1,5 @@
 package com.example.mykotlinapp.ui
+
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.mykotlinapp.R
@@ -7,13 +8,12 @@ import com.example.mykotlinapp.database.User
 import com.example.mykotlinapp.adapter.UserAdapter
 import com.example.mykotlinapp.provider.UserContentProvider
 import android.content.ContentValues
+import android.net.Uri
 import android.widget.EditText
 import android.widget.Button
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.Toast
-
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = UserAdapter(users)
+        adapter = UserAdapter(users) { user -> deleteUser(user) } // Pass delete function
         recyclerView.adapter = adapter
 
         saveButton.setOnClickListener { saveUser() }
@@ -59,7 +59,12 @@ class MainActivity : AppCompatActivity() {
 
         if (newUri != null) {
             Toast.makeText(this, "User added", Toast.LENGTH_SHORT).show()
-            loadUsers()
+
+            // Clear the input fields after saving
+            nameInput.text.clear()
+            emailInput.text.clear()
+
+            loadUsers() // Refresh the list
         } else {
             Toast.makeText(this, "Failed to add user", Toast.LENGTH_SHORT).show()
         }
@@ -79,4 +84,21 @@ class MainActivity : AppCompatActivity() {
         }
         adapter.notifyDataSetChanged()
     }
+
+    private fun deleteUser(user: User) {
+        val uri = Uri.withAppendedPath(UserContentProvider.CONTENT_URI, user.id.toString())
+
+        // Only delete the specific user by ID
+        val deletedRows = contentResolver.delete(uri, "${DatabaseHelper.COLUMN_ID}=?", arrayOf(user.id.toString()))
+
+        if (deletedRows > 0) {
+            Toast.makeText(this, "User deleted", Toast.LENGTH_SHORT).show()
+
+            users.removeIf { it.id == user.id } // Remove only the deleted user
+            adapter.notifyDataSetChanged() // Update RecyclerView
+        } else {
+            Toast.makeText(this, "Failed to delete user", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }
